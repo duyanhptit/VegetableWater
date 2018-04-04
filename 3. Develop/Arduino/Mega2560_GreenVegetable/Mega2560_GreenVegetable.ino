@@ -13,6 +13,10 @@ const int DIG_24 = 24;
 const int DIG_26 = 26;
 const int DIG_28 = 28;
 
+const int 7LED_DATA = 2;
+const int 7LED_LATCH = 3;
+const int 7LED_CLK = 5;
+
 // initialize Timer
 const int ACT_HOUR = 22;
 const int C_SECOND = 1;
@@ -30,9 +34,13 @@ int old_hour, old_sec;
 bool pump_active, light_active;
 unsigned int pump_active_counter;
 unsigned int light_active_counter;
+
 volatile unsigned int hour_timer, min_timer, sec_timer;
 volatile unsigned int pump_counter = 0;
 volatile unsigned int light_counter = 0;
+
+// 7 LED initialize
+unsigned char LED_CODE[10] = {0xc0, 0xf9, 0xa4, 0xb0, 0x99, 0x92, 0x82, 0xf8, 0x80, 0x90};
 
 // the setup routine runs once when you press reset:
 void setup() {
@@ -57,6 +65,10 @@ void setup() {
   pinMode(DIG_24, OUTPUT);
   pinMode(DIG_26, OUTPUT);
   pinMode(DIG_28, OUTPUT);
+
+  pinMode(7LED_DATA, OUTPUT);
+  pinMode(7LED_LATCH, OUTPUT);
+  pinMode(7LED_CLK, OUTPUT);
 
   Serial.println("Hello Duy Anh!");
   Serial.println("Config Done - Begin the loop.");
@@ -164,6 +176,44 @@ void loop() {
   
   old_sec = sec_timer_copy;
   delay(500);        // delay in between reads for stability
+}
+
+void ShowDigital(int num, int value, int dot){
+  int i;
+  unsigned char temp;
+  temp = LED_CODE[value];
+
+  if (dot == 1) temp &= 0x7f;
+  switch(number) {
+    case 0: {
+      digitalWrite(7LED_LATCH, LOW);
+      shiftOut(7LED_DATA, 7LED_CLK, MSBFIRST, 0x01);
+      shiftOut(7LED_DATA, 7LED_CLK, MSBFIRST, temp);
+      digitalWrite(7LED_LATCH, HIGH);
+      break;
+    }
+    case 1: {
+      digitalWrite(7LED_LATCH, LOW);
+      shiftOut(7LED_DATA, 7LED_CLK, MSBFIRST, 0x02);
+      shiftOut(7LED_DATA, 7LED_CLK, MSBFIRST, temp);
+      digitalWrite(7LED_LATCH, HIGH);
+      break;
+    }
+    case 2: {
+      digitalWrite(7LED_LATCH, LOW);
+      shiftOut(7LED_DATA, 7LED_CLK, MSBFIRST, 0x04);
+      shiftOut(7LED_DATA, 7LED_CLK, MSBFIRST, temp);
+      digitalWrite(7LED_LATCH, HIGH);
+      break;
+    }
+    case 3: {
+      digitalWrite(7LED_LATCH, LOW);
+      shiftOut(7LED_DATA, 7LED_CLK, MSBFIRST, 0x08);
+      shiftOut(7LED_DATA, 7LED_CLK, MSBFIRST, temp);
+      digitalWrite(7LED_LATCH, HIGH);
+      break;
+    }
+  }
 }
 
 
