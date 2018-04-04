@@ -18,7 +18,7 @@ const int ACT_HOUR = 22;
 const int C_SECOND = 1;
 const int C_MINUTE = C_SECOND * 60;
 const int C_HOUR = C_MINUTE * 60;
-// Test const int C_HOUR = C_SECOND * 5 ;
+// Test const int C_HOUR = C_SECOND * 5;
 
 // config time
 const int PUMP_TIMER_MAX = 6 * C_HOUR;
@@ -26,9 +26,10 @@ const int PUMP_RUN_TIME = 1 * C_HOUR;
 const int LIGHT_TIMER_MAX = 3 * C_HOUR;
 const int LIGHT_RUN_TIME = 1 * C_HOUR;
 
-int state;
-int pump_active_counter;
-int light_active_counter;
+int old_hour, old_sec;
+bool pump_active, light_active;
+unsigned int pump_active_counter;
+unsigned int light_active_counter;
 volatile unsigned int hour_timer, min_timer, sec_timer;
 volatile unsigned int pump_counter = 0;
 volatile unsigned int light_counter = 0;
@@ -41,14 +42,15 @@ void setup() {
   
   // initialize serial communication at 9600 bits per second:
   Serial.begin(9600);
-  // initialize digital pin LED_BUILDIN as an output
-  state = HIGH;
-  sec_timer = 0;
-  min_timer = 47;
-  hour_timer = 12;
 
-  pump_active_counter = 0;
-  light_active_counter = 0;
+  // initialize digital pin LED_BUILDIN as an output
+  sec_timer = 55;
+  min_timer = 59;
+  hour_timer = 21;
+
+  old_sec = sec_timer;
+  pump_active = false;
+  light_active = false;
 
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(DIG_22, OUTPUT);
@@ -83,60 +85,73 @@ void blinkLed(void) {
   Serial.print(min_timer);
   Serial.print(":");
   Serial.println(sec_timer);
-
-  
-  // counter pump
-  if (pump_counter == PUMP_TIMER_MAX - 1) {
-    pump_counter = 0;
-  } else {
-    pump_counter = pump_counter + 1;
-  }
-  // counter light
-  if (light_counter == LIGHT_TIMER_MAX - 1) {
-    light_counter = 0;
-  } else {
-    light_counter = light_counter + 1;
-  }
-
-  // turn the LED on (HIGH is the voltage level)
-  if (state == HIGH) {
-    state = LOW;
-  } else if (state == LOW) {
-    state = HIGH;
-  }
-  digitalWrite(LED_BUILTIN, state);
 }
 
 // the loop routine runs over and over again forever:
 void loop() {
   unsigned int hour_timer_copy;
-  unsigned int pump_counter_copy;
-  unsigned int light_counter_copy;
+  unsigned int min_timer_copy;
+  unsigned int sec_timer_copy;
 
   noInterrupts();
   hour_timer_copy = hour_timer;
-  pump_counter_copy = pump_counter;
-  light_counter_copy = light_counter;
+  min_timer_copy = min_timer;
+  sec_timer_copy = sec_timer;
   interrupts();
 
+  // Blink led build-in, turn the LED on (HIGH is the voltage level)
+  if ((sec_timer_copy % 2) == 0) {
+    digitalWrite(LED_BUILTIN, HIGH);
+  } else {
+    digitalWrite(LED_BUILTIN, LOW);
+  }
+
   // Run pump
-  if (pump_counter_copy == 0) {
-    digitalWrite(DIG_22, HIGH);
-    digitalWrite(DIG_24, HIGH);
-  } else if (pump_counter_copy == PUMP_RUN_TIME) {
-    digitalWrite(DIG_22, LOW);
-    digitalWrite(DIG_24, LOW);
+  if ((hour_timer_copy == 4 || hour_timer_copy == 10 || hour_timer_copy == 16 || hour_timer_copy == 22)
+        && min_timer_copy == 0 && sec_timer_copy == 0){
+    if (pump_active == false) {
+      digitalWrite(DIG_22, HIGH);
+      digitalWrite(DIG_24, HIGH);
+      pump_active = true;
+      pump_active_counter = 0;
+      Serial.println("********** Turn ON pump **********");
+    }
+  }
+  if (pump_active == true) {
+    if (old_sec != sec_timer_copy) {
+      if (pump_active_counter == PUMP_RUN_TIME) {
+        digitalWrite(DIG_22, LOW);
+        digitalWrite(DIG_24, LOW);
+        pump_active = false;
+        Serial.println("********** Turn OFF pump **********");
+      } else {
+        pump_active_counter++;
+      }
+    }
   }
 
   // Run light
-  if (light_counter_copy == 0) {
-    if (hour_timer_copy >= 18 || hour_timer_copy <= 6) {
+  if ((hour_timer_copy == 1 || hour_timer_copy == 4 || hour_timer_copy == 19 || hour_timer_copy == 22)
+        && min_timer_copy == 0 && sec_timer_copy == 0){
+    if (light_active == false) {
       digitalWrite(DIG_26, HIGH);
       digitalWrite(DIG_28, HIGH);
+      light_active = true;
+      light_active_counter = 0;
+      Serial.println("********** Turn ON light **********");
     }
-  } else if (light_counter_copy == LIGHT_RUN_TIME) {
-    digitalWrite(DIG_26, LOW);
-    digitalWrite(DIG_28, LOW);
+  }
+  if (light_active == true) {
+    if (old_sec != sec_timer_copy) {
+      if (light_active_counter == LIGHT_RUN_TIME) {
+        digitalWrite(DIG_26, LOW);
+        digitalWrite(DIG_28, LOW);
+        light_active = false;
+        Serial.println("********** Turn OFF light **********");
+      } else {
+        light_active_counter++;
+      }
+    }
   }
     
 //  // read the input on analog pin 0:
@@ -146,5 +161,9 @@ void loop() {
 //
 //  // print out the value you read:
 //  Serial.println(sensorValue);
-  delay(100);        // delay in between reads for stability
+  
+  old_sec = sec_timer_copy;
+  delay(500);        // delay in between reads for stability
 }
+
+
