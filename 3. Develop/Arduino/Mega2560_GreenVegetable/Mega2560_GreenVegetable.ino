@@ -14,6 +14,10 @@ const int DIG_24 = 24;
 const int DIG_26 = 26;
 const int DIG_28 = 28;
 
+const int LED7_DATA = 6;
+const int LED7_LATCH = 2;
+const int LED7_CLK = 5;
+
 // initialize Timer
 const int ACT_HOUR = 22;
 const int C_SECOND = 1;
@@ -37,18 +41,22 @@ int old_hour, old_sec;
 bool pump_active, light_active;
 unsigned int pump_active_counter;
 unsigned int light_active_counter;
+
 volatile unsigned int hour_timer, min_timer, sec_timer;
 volatile unsigned int pump_counter = 0;
 volatile unsigned int light_counter = 0;
 
+// 7 LED initialize
+unsigned char LED_CODE[10] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f};
+
 // the setup routine runs once when you press reset:
 void setup() {
   // initialize Timer
-  //  Timer1.initialize(991775);    // 1s
-  //  Timer1.attachInterrupt(blinkLed);
+  Timer1.initialize(991775);    // 1s
+  Timer1.attachInterrupt(blinkLed);
 
   initRTC();
-  
+
   // initialize serial communication at 9600 bits per second:
   Serial.begin(9600);
 
@@ -66,6 +74,10 @@ void setup() {
   pinMode(DIG_24, OUTPUT);
   pinMode(DIG_26, OUTPUT);
   pinMode(DIG_28, OUTPUT);
+
+  pinMode(LED7_DATA, OUTPUT);
+  pinMode(LED7_LATCH, OUTPUT);
+  pinMode(LED7_CLK, OUTPUT);
 
   Serial.println("Hello Duy Anh!");
   Serial.println("Config Done - Begin the loop.");
@@ -202,7 +214,78 @@ void loop() {
   //  Serial.println(sensorValue);
 
   old_sec = sec_timer_copy;
-  delay(1000);        // delay in between reads for stability
+
+  Led7Display(min_timer_copy, sec_timer_copy, true);
+
+  //delay(100);        // delay in between reads for stability
+}
+
+void ShowDigital(int num, int value, int dot) {
+  unsigned char temp;
+  temp = LED_CODE[value];
+  if (dot == 1) temp &= 0x7f;
+  switch (num) {
+    case 0: {
+        digitalWrite(LED7_LATCH, LOW);
+        shiftOut(LED7_DATA, LED7_CLK, MSBFIRST, 0xfd);
+        shiftOut(LED7_DATA, LED7_CLK, MSBFIRST, temp);
+        digitalWrite(LED7_LATCH, HIGH);
+      } break;
+    case 1: {
+        digitalWrite(LED7_LATCH, LOW);
+        shiftOut(LED7_DATA, LED7_CLK, MSBFIRST, 0xfb);
+        shiftOut(LED7_DATA, LED7_CLK, MSBFIRST, temp);
+        digitalWrite(LED7_LATCH, HIGH);
+      } break;
+    case 2: {
+        digitalWrite(LED7_LATCH, LOW);
+        shiftOut(LED7_DATA, LED7_CLK, MSBFIRST, 0xef);
+        shiftOut(LED7_DATA, LED7_CLK, MSBFIRST, temp);
+        digitalWrite(LED7_LATCH, HIGH);
+      } break;
+    case 3: {
+        digitalWrite(LED7_LATCH, LOW);
+        shiftOut(LED7_DATA, LED7_CLK, MSBFIRST, 0xdf);
+        shiftOut(LED7_DATA, LED7_CLK, MSBFIRST, temp);
+        digitalWrite(LED7_LATCH, HIGH);
+      } break;
+    case 4: { // turn on ":"
+        digitalWrite(LED7_LATCH, LOW);
+        shiftOut(LED7_DATA, LED7_CLK, MSBFIRST, 0xf7);
+        shiftOut(LED7_DATA, LED7_CLK, MSBFIRST, 0x00);
+        digitalWrite(LED7_LATCH, HIGH);
+      } break;
+    case 5: { // turn off ":"
+        digitalWrite(LED7_LATCH, LOW);
+        shiftOut(LED7_DATA, LED7_CLK, MSBFIRST, 0xfe);
+        shiftOut(LED7_DATA, LED7_CLK, MSBFIRST, 0x00);
+        digitalWrite(LED7_LATCH, HIGH);
+      } break;
+  }
+}
+
+void Led7Display(int num1, int num2, bool clk) {
+  int i;
+  int l1, l2, l3, l4;
+  if (clk == true) {
+    l1 = num1 / 10;
+    l2 = num1 % 10;
+    l3 = num2 / 10;
+    l4 = num2 % 10;
+    for (i = 0; i < 25; i++) {
+      ShowDigital(0, l1, 0); delay(5);
+      ShowDigital(1, l2, 0); delay(5);
+      ShowDigital(2, l3, 0); delay(5);
+      ShowDigital(3, l4, 0); delay(5);
+      if ((l4 % 2) == 0) {
+        ShowDigital(4, 0, 0); delay(5);
+      } else {
+        ShowDigital(5, 0, 0); delay(5);
+      }
+    }
+  } else {
+
+  }
 }
 
 // Read data from Module DS1307 via I2C Communication
@@ -232,7 +315,7 @@ int dec2bcd(byte num) {
   return ((num / 10 * 16) + (num % 10));
 }
 
-       // Display Digital Clock
+// Display Digital Clock
 void digitalClockDisplay() {
   Serial.print(hour);
   printDigits(minute);
