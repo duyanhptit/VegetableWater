@@ -5,6 +5,7 @@
 */
 
 #include "TimerOne.h"
+#include "Wire.h"
 
 
 // initialize MEGA_2560 pins
@@ -26,6 +27,12 @@ const int PUMP_RUN_TIME = 1 * C_HOUR;
 const int LIGHT_TIMER_MAX = 3 * C_HOUR;
 const int LIGHT_RUN_TIME = 1 * C_HOUR;
 
+// initialize RTC DS-1307
+const byte DS1307 = 0x68;
+const byte NumberOfFields = 7;
+int second, minute, hour, day, wday, month, year;
+
+
 int old_hour, old_sec;
 bool pump_active, light_active;
 unsigned int pump_active_counter;
@@ -37,8 +44,10 @@ volatile unsigned int light_counter = 0;
 // the setup routine runs once when you press reset:
 void setup() {
   // initialize Timer
-  Timer1.initialize(991775);    // 1s
-  Timer1.attachInterrupt(blinkLed);
+  //  Timer1.initialize(991775);    // 1s
+  //  Timer1.attachInterrupt(blinkLed);
+
+  initRTC();
   
   // initialize serial communication at 9600 bits per second:
   Serial.begin(9600);
@@ -69,6 +78,25 @@ void setup() {
   digitalWrite(DIG_28, HIGH);
 }
 
+void initRTC() {
+  Wire.begin();
+  //setTime(14, 44, 20, 5, 5, 4, 18);   // 12:30:45 T5 05-04-2018
+}
+
+// Set time for Module DS1307
+void setTime(byte hr, byte minu, byte sec, byte wd, byte d, byte mth, byte yr)
+{
+  Wire.beginTransmission(DS1307);
+  Wire.write(byte(0x00));       // re-setup pointer
+  Wire.write(dec2bcd(sec));
+  Wire.write(dec2bcd(minu));
+  Wire.write(dec2bcd(hr));
+  Wire.write(dec2bcd(wd));      // day of week: Sunday = 1, Saturday = 7
+  Wire.write(dec2bcd(d));
+  Wire.write(dec2bcd(mth));
+  Wire.write(dec2bcd(yr));
+  Wire.endTransmission();
+}
 
 void blinkLed(void) {
   // O'clock
@@ -87,6 +115,8 @@ void blinkLed(void) {
   Serial.println(sec_timer);
 }
 
+
+
 // the loop routine runs over and over again forever:
 void loop() {
   unsigned int hour_timer_copy;
@@ -99,16 +129,23 @@ void loop() {
   sec_timer_copy = sec_timer;
   interrupts();
 
-  // Blink led build-in, turn the LED on (HIGH is the voltage level)
+  //=== Read time from Module DS1307
+  readRD1307();
+  digitalClockDisplay();
+  //=============================
+
+
+  //=== Blink led build-in, turn the LED on (HIGH is the voltage level)
   if ((sec_timer_copy % 2) == 0) {
     digitalWrite(LED_BUILTIN, HIGH);
   } else {
     digitalWrite(LED_BUILTIN, LOW);
   }
+  //===============================================================
 
-  // Run pump
+  //=== Run pump
   if ((hour_timer_copy == 4 || hour_timer_copy == 10 || hour_timer_copy == 16 || hour_timer_copy == 22)
-        && min_timer_copy == 0 && sec_timer_copy == 0){
+      && min_timer_copy == 0 && sec_timer_copy == 0) {
     if (pump_active == false) {
       digitalWrite(DIG_22, HIGH);
       digitalWrite(DIG_24, HIGH);
@@ -129,10 +166,11 @@ void loop() {
       }
     }
   }
+  //====================================================================================================
 
-  // Run light
+  //=== Run light
   if ((hour_timer_copy == 1 || hour_timer_copy == 4 || hour_timer_copy == 19 || hour_timer_copy == 22)
-        && min_timer_copy == 0 && sec_timer_copy == 0){
+      && min_timer_copy == 0 && sec_timer_copy == 0) {
     if (light_active == false) {
       digitalWrite(DIG_26, HIGH);
       digitalWrite(DIG_28, HIGH);
@@ -153,17 +191,68 @@ void loop() {
       }
     }
   }
-    
-//  // read the input on analog pin 0:
-//  int sensorValue = analogRead(A1);
-//  // Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 5V):
-//  float voltage = sensorValue * (5.0 / 1023.0);
-//
-//  // print out the value you read:
-//  Serial.println(sensorValue);
-  
+  //====================================================================================================
+
+  //  // read the input on analog pin 0:
+  //  int sensorValue = analogRead(A1);
+  //  // Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 5V):
+  //  float voltage = sensorValue * (5.0 / 1023.0);
+  //
+  //  // print out the value you read:
+  //  Serial.println(sensorValue);
+
   old_sec = sec_timer_copy;
-  delay(500);        // delay in between reads for stability
+  delay(1000);        // delay in between reads for stability
 }
+
+// Read data from Module DS1307 via I2C Communication
+void readRD1307() {
+  Wire.beginTransmission(DS1307);
+  Wire.write((byte)0x00);
+  Wire.endTransmission();
+  Wire.requestFrom(DS1307, NumberOfFields);
+
+  second  = bcd2dec(Wire.read() & 0x7f);
+  minute  = bcd2dec(Wire.read());
+  hour    = bcd2dec(Wire.read() & 0x3f); // mode 24h
+  wday    = bcd2dec(Wire.read());
+  day     = bcd2dec(Wire.read());
+  month   = bcd2dec(Wire.read());
+  year    = bcd2dec(Wire.read());
+  year  += 2000;
+}
+
+// Convert format form BCD (Binary-Coded Decimal) to Decimal
+int bcd2dec(byte num) {
+  return ((num / 16 * 10) + (num % 16));
+}
+
+// Convert format from Decimal BCD to (Binary-Coded Decimal)
+int dec2bcd(byte num) {
+  return ((num / 10 * 16) + (num % 10));
+}
+
+       // Display Digital Clock
+void digitalClockDisplay() {
+  Serial.print(hour);
+  printDigits(minute);
+  printDigits(second);
+  Serial.print(" ");
+  Serial.print(day);
+  Serial.print("/");
+  Serial.print(month);
+  Serial.print("/");
+  Serial.print(year);
+  Serial.println();
+}
+
+// print format o'clock
+void printDigits(int digits) {
+  Serial.print(":");
+  if (digits < 10) Serial.print("0");
+  Serial.print(digits);
+}
+
+
 
 
