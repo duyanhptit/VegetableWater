@@ -53,7 +53,7 @@ bool tick_clk;
 // the setup routine runs once when you press reset:
 void setup() {
   // initialize Timer
-  Timer1.initialize(991775);    // 1s
+  Timer1.initialize(990728);    // 1s
   Timer1.attachInterrupt(blinkLed);
 
   //initRTC();
@@ -62,9 +62,9 @@ void setup() {
   Serial.begin(9600);
 
   // initialize digital pin LED_BUILDIN as an output
-  sec_timer = 40;
-  min_timer = 38;
-  hour_timer = 15;
+  sec_timer = 0;
+  min_timer = 16;
+  hour_timer = 17;
 
   tick_clk = true;
 
