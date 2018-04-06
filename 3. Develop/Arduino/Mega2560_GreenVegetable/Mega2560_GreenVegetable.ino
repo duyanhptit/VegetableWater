@@ -48,6 +48,7 @@ volatile unsigned int light_counter = 0;
 
 // 7 LED initialize
 unsigned char LED_CODE[10] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f};
+bool tick_clk;
 
 // the setup routine runs once when you press reset:
 void setup() {
@@ -55,15 +56,17 @@ void setup() {
   Timer1.initialize(991775);    // 1s
   Timer1.attachInterrupt(blinkLed);
 
-  initRTC();
+  //initRTC();
 
   // initialize serial communication at 9600 bits per second:
   Serial.begin(9600);
 
   // initialize digital pin LED_BUILDIN as an output
-  sec_timer = 55;
-  min_timer = 59;
-  hour_timer = 21;
+  sec_timer = 40;
+  min_timer = 38;
+  hour_timer = 15;
+
+  tick_clk = true;
 
   old_sec = sec_timer;
   pump_active = false;
@@ -142,8 +145,8 @@ void loop() {
   interrupts();
 
   //=== Read time from Module DS1307
-  readRD1307();
-  digitalClockDisplay();
+//  readRD1307();
+//  digitalClockDisplay();
   //=============================
 
 
@@ -212,10 +215,12 @@ void loop() {
   //
   //  // print out the value you read:
   //  Serial.println(sensorValue);
-
+  if (old_sec != sec_timer_copy) {
+    tick_clk = !tick_clk;
+  }
   old_sec = sec_timer_copy;
 
-  Led7Display(min_timer_copy, sec_timer_copy, true);
+  Led7Display(hour_timer_copy, min_timer_copy, true);
 
   //delay(100);        // delay in between reads for stability
 }
@@ -273,14 +278,14 @@ void Led7Display(int num1, int num2, bool clk) {
     l3 = num2 / 10;
     l4 = num2 % 10;
     for (i = 0; i < 25; i++) {
-      ShowDigital(0, l1, 0); delay(5);
-      ShowDigital(1, l2, 0); delay(5);
-      ShowDigital(2, l3, 0); delay(5);
-      ShowDigital(3, l4, 0); delay(5);
-      if ((l4 % 2) == 0) {
-        ShowDigital(4, 0, 0); delay(5);
+      ShowDigital(0, l1, 0); delay(3);
+      ShowDigital(1, l2, 0); delay(3);
+      ShowDigital(2, l3, 0); delay(3);
+      ShowDigital(3, l4, 0); delay(3);
+      if (tick_clk == true) {
+        ShowDigital(4, 0, 0); delay(3);
       } else {
-        ShowDigital(5, 0, 0); delay(5);
+        ShowDigital(5, 0, 0); delay(3);
       }
     }
   } else {
