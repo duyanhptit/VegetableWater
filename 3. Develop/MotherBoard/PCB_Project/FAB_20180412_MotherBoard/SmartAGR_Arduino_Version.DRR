@@ -1,0 +1,22 @@
+----------------------------------------------------------------------------------------------------------------------------------
+NCDrill File Report For: SmartAGR_Arduino_Version.PcbDoc   4/12/2018  10:36:32 AM
+----------------------------------------------------------------------------------------------------------------------------------
+
+Layer Pair : Top Layer to Bottom Layer
+ASCII RoundHoles File : SmartAGR_Arduino_Version-RoundHoles.TXT
+ASCII SlotHoles File : SmartAGR_Arduino_Version-SlotHoles.TXT
+
+Tool       Hole Size               Hole Tolerance               Hole Type       Hole Count   Plated         Tool Travel
+----------------------------------------------------------------------------------------------------------------------------------
+T1      12mil (0.305mm)                                           Round             370       PTH        60.08inch (1526.16mm)
+T2      32mil (0.8mm)                                             Round             50        PTH        6.17inch (156.75mm)
+T3      34mil (0.851mm)                                           Round             6         PTH        0.49inch (12.47mm)
+T4      43mil (1.1mm)                                             Round             58        PTH        9.44inch (239.89mm)
+T5      47mil (1.199mm)                                           Round             29        PTH        13.46inch (341.93mm)
+T6      50mil (1.27mm)                                            Slot              3         PTH        1.08inch (27.50mm)
+T7      67mil (1.699mm)                                           Round             78        PTH        23.07inch (585.99mm)
+T8      118mil (3mm)                                              Round             7         PTH        20.75inch (527.06mm)
+----------------------------------------------------------------------------------------------------------------------------------
+Totals                                                                              601
+
+Total Processing Time (hh:mm:ss) : 00:00:00

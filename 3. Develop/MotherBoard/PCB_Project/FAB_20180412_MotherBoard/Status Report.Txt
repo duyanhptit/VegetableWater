@@ -1,0 +1,13 @@
+Output: NC Drill Files
+Type  : NC Drill
+From  : Project [PCB_Project.PrjPcb]
+   Generated File[SmartAGR_Arduino_Version-RoundHoles.TXT]
+   Generated File[SmartAGR_Arduino_Version-SlotHoles.TXT]
+   Generated File[SmartAGR_Arduino_Version.LDP]
+   Generated File[SmartAGR_Arduino_Version.DRR]
+
+
+Files Generated   : 4
+Documents Printed : 0
+
+Finished Output Generation At 10:36:32 AM On 4/12/2018
